@@ -1,0 +1,53 @@
+---
+title: "Formular 1 2021 Season - Head to Head comparisons"
+output: html_notebook
+---
+
+```{r}
+library(rvest)
+library(xml2)
+library(ggplot2)
+library(ggthemes)
+```
+
+```{r}
+
+URL <- "https://www.formula1.com/en/results.html/2021/drivers.html"
+page = read_html(URL)
+
+raw_standings = page %>%
+  html_node(".resultsarchive-table") %>%
+  html_table() %>%
+  select(-c(1, 7))
+
+raw_standings
+```
+```{r}
+head_to_head = raw_standings %>%
+  group_by(Car) %>%
+  summarise(First=max(PTS), Second=min(PTS))
+
+head_to_head$Car <- factor(head_to_head$Car, levels = head_to_head$Car[order(head_to_head$First)])
+head_to_head
+```
+
+```{r}
+ggplot(head_to_head) +
+  geom_segment(aes(x=Car, xend=Car, y=First, yend=Second, color=Car)) +
+  geom_point(aes(x=Car, y=First, color=Car, size=First)) +
+  geom_point(aes(x=Car, y=Second, color=Car, size=Second)) +
+  coord_flip()+
+  theme_fivethirtyeight() +
+  theme(
+    legend.position = "none",
+  ) +
+  ggtitle("Formula 1 2021", "Head to Head Drivers Comparison") +
+  labs(
+    title = "Formula 1 2021 Season",
+    subtitle = "Head to Head Drivers Comparison",
+    caption = "Source: https://www.formula1.com/en/results.html/2021/drivers.html",
+    xlab = "Team"
+  ) +
+  xlab("Team") +
+  ylab("Points")
+```
