@@ -6,8 +6,12 @@ output: html_notebook
 ```{r}
 library(rvest)
 library(xml2)
+library(dplyr)
 library(ggplot2)
 library(ggthemes)
+library(hrbrthemes)
+
+source("../R/colors.R")
 ```
 
 ```{r}
@@ -34,20 +38,21 @@ head_to_head
 ```{r}
 ggplot(head_to_head) +
   geom_segment(aes(x=Car, xend=Car, y=First, yend=Second, color=Car)) +
-  geom_point(aes(x=Car, y=First, color=Car, size=First)) +
-  geom_point(aes(x=Car, y=Second, color=Car, size=Second)) +
+  geom_point(aes(x=Car, y=First, size=First, color=Car)) +
+  geom_point(aes(x=Car, y=Second, size=Second, color=Car)) +
+  scale_color_manual(values=scuderia_colors()) +
   coord_flip()+
-  theme_fivethirtyeight() +
+  theme_ft_rc(grid = "X") +
   theme(
-    legend.position = "none",
+    legend.position = "none"
   ) +
   ggtitle("Formula 1 2021", "Head to Head Drivers Comparison") +
   labs(
     title = "Formula 1 2021 Season",
     subtitle = "Head to Head Drivers Comparison",
     caption = "Source: https://www.formula1.com/en/results.html/2021/drivers.html",
-    xlab = "Team"
   ) +
-  xlab("Team") +
+  xlab("") +
   ylab("Points")
+ggsave('../sample_chart.png', dpi = 600)
 ```
