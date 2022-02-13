@@ -10,19 +10,21 @@ library(dplyr)
 library(ggplot2)
 library(ggthemes)
 library(hrbrthemes)
+library(stringi)
 
 source("../R/colors.R")
 ```
 
 ```{r}
-
 URL <- "https://www.formula1.com/en/results.html/2021/drivers.html"
 page = read_html(URL)
 
 raw_standings = page %>%
   html_node(".resultsarchive-table") %>%
   html_table() %>%
-  select(-c(1, 7))
+  select(-c(1, 7)) %>%
+  mutate(Tag=stri_sub(Driver, -3)) %>%
+  filter(Tag != 'KUB')
 
 raw_standings
 ```
@@ -30,16 +32,38 @@ raw_standings
 head_to_head = raw_standings %>%
   group_by(Car) %>%
   summarise(First=max(PTS), Second=min(PTS))
-
-head_to_head$Car <- factor(head_to_head$Car, levels = head_to_head$Car[order(head_to_head$First)])
 head_to_head
 ```
+```{r}
+firsts <- head_to_head %>%
+  inner_join(raw_standings, by = c("Car" = "Car", "First" = "PTS")) %>%
+  select(Car, First, Tag)
+
+runnerups <- head_to_head %>%
+  inner_join(raw_standings, by = c("Car" = "Car", "Second" = "PTS")) %>%
+  select(Car, Second, Tag)
+
+head_to_head_with_tags <- firsts %>%
+  inner_join(runnerups, by='Car', suffix = c("First", "Second")) %>%
+  arrange(TagFirst) %>%
+  distinct(Car, .keep_all = TRUE)
+head_to_head_with_tags
+```
+
 
 ```{r}
-ggplot(head_to_head) +
+head_to_head_with_tags$Car <- factor(
+  head_to_head_with_tags$Car,
+  levels = head_to_head_with_tags$Car[order(head_to_head_with_tags$First)]
+)
+head_to_head_with_tags
+
+ggplot(head_to_head_with_tags) +
   geom_segment(aes(x=Car, xend=Car, y=First, yend=Second, color=Car)) +
   geom_point(aes(x=Car, y=First, size=First, color=Car)) +
   geom_point(aes(x=Car, y=Second, size=Second, color=Car)) +
+  geom_text(aes(x=Car, y=First, label=TagFirst), nudge_y = 30) +
+  geom_text(aes(x=Car, y=Second, label=TagSecond), nudge_y = -30) +
   scale_color_manual(values=scuderia_colors()) +
   coord_flip()+
   theme_ft_rc(grid = "X") +
@@ -54,5 +78,4 @@ ggplot(head_to_head) +
   ) +
   xlab("") +
   ylab("Points")
-ggsave('../sample_chart.png', dpi = 600)
 ```
